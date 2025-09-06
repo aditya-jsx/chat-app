@@ -1,0 +1,64 @@
+import { test, describe } from "jest:test";
+
+
+const BACKEND_URL = "ws://localhost:8080";
+
+describe("Chat Application", () => {
+
+    test("message sent from room 1 reaches another participant in room 1", async () => {
+        const ws1 = new WebSocket(BACKEND_URL)
+        const ws2 = new WebSocket(BACKEND_URL)
+
+        //! here we have to write a code to make sure the socekts are connected between trying to make a connection and sending a message
+        //! first we have to make sure the websocket is connected and then we have to send the message
+
+
+        //! after these two onopen are done then only the messages are being sent
+        // ws1.onopen = () => {
+        //     console.log("hi")
+        // }
+        
+        // ws2.onopen = () => {
+        //     console.log("hello")
+            
+        // }
+        
+        //! Solution:- we know that we need to await something, here we need to await a new promise
+        await new Promise<void>((resolve, reject)=>{
+            let count = 0;
+            ws1.onopen = () => {
+                count += 1;
+                if(count == 1){
+                    resolve();
+                }
+            }
+            
+            ws2.onopen = () => {
+                count += 1;
+                if(count == 2){
+                    resolve();
+                }
+            }
+        })
+        //! the answer is that we can do those operations in an awaited promise which only resolves when both the onopen commands are resolved
+        //! great interview question
+        //! another approach is using Promise.all
+        
+        
+        
+        console.log("hi hello both done")
+        ws1.send(JSON.stringify({
+            type: "join-room",
+            room: "Room 1"
+        }))
+        ws2.send(JSON.stringify({
+            type: "join-room",
+            room: "Room 2"
+        }))
+        ws1.send(JSON.stringify({
+            type: "chat",
+            room: "Room 1",
+            message: "Hi there"
+        }))
+    })
+})
