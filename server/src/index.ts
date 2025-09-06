@@ -14,141 +14,53 @@ wss.on("connection", (socket) => {
     console.log("User Connected")
 
     socket.on("message", (message:string)=>{
-        const parsedMessage = JSON.parse(message);
-        if(parsedMessage.type == "join"){
-            allSockets.push({
-                socket,
-                room: parsedMessage.payload.roomId,
-            })
+        let parsedMessage;
+        try{
+            parsedMessage = JSON.parse(message);
+        }catch(e){
+            console.log("Failed to parse the JSON or invalid JSON format", e);
+            return;
+        }
+
+
+        if(parsedMessage.type == "join" && parsedMessage.payload?.roomId){
+            const existingUser = allSockets.find(user => user.socket === socket);
+            if(existingUser){
+                existingUser.room = parsedMessage.payload.roomId;
+            }else{
+                allSockets.push({
+                    socket,
+                    room: parsedMessage.payload.roomId,
+                })
+            }
         }
 
         if(parsedMessage.type == "chat"){
             // find the room of the user
-            const currentUserRoom = allSockets.find((x)=>{x.socket == socket});
+            const sender = allSockets.find(user => user.socket === socket);
 
-            // allSockets.map(() => {
-            //     if(allSockets.room = currentUserRoom){
-            //         allSockets.socket.send(parsedMessage.payload.message)
-            //     }
-            // })
+            if(sender){
+                const senderRoom = sender.room;
+                const chatMessageContent = parsedMessage.payload.message;
 
-            for(let i = 0; i < allSockets.length; i++){
-                // @ts-ignore
-                if(allSockets[i].room == currentUserRoom){
-                    allSockets[i]?.socket.send(parsedMessage.payload.message);
-                }
+                const messagePayload = {
+                    type: "chatMessage",
+                    content: chatMessageContent,
+                    sender: "other"
+                };
+
+                // const message = messagePayload.content;
+
+                allSockets.forEach(user => {
+                    if(user.room === senderRoom){
+                        user.socket.send(JSON.stringify(messagePayload));
+                    }
+                })
             }
         }
+
+    socket.on("close", () => {
+        allSockets = allSockets.filter((user) => user.socket !== socket);
     })
-})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// let allSockets: WebSocket[] = [];
-
-// interface Room {
-//   sockets: WebSocket[];
-// }
-
-// const rooms: Record<string, Room> = {};
-
-// wss.on("connection", function (ws) {
-
-//     ws.on("message", function message(data:string){
-//         // the data in the ws server always comes in the format of a string so we have to convert it into a string
-//         const parsedData = JSON.parse(data);
-
-//         // then we have to check whether the coming room is present in the rooms or not, if not then we add it
-//         if(parsedData.type == "join-room"){
-//             const room = parsedData.room;
-//             if(!rooms[room]){
-//                 rooms[room] = {
-//                     sockets: []
-//                 }
-//             }
-//             // if present then we push this specific socket into that romm
-//             rooms[room].sockets.push(ws);
-//         }
-//         if(parsedData.type == "chat"){
-//             const room = parsedData.room;
-//             if(rooms[room]){
-//                 rooms[room].sockets.map(socket => socket.send(data))
-//             }
-//             return null;
-//         }
-//     });
-
-
-// });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// allSockets.push(socket);
-// console.log("User connected");
-
-// // getting message from the client
-// socket.on("message", (message) => {
-//   // responding back to the client
-//   allSockets.forEach((eachCLient) => {
-//     if (eachCLient !== socket) {
-//       eachCLient.send(message.toString());
-//     }
-//   });
-// });
-
-// //! when people disconnects then keep only the people which are connected
-// socket.on("close", () => {
-//   allSockets = allSockets.filter((x) => x != socket);
-// });
+}
+)})
