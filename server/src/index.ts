@@ -43,16 +43,19 @@ wss.on("connection", (socket) => {
                 const senderRoom = sender.room;
                 const chatMessageContent = parsedMessage.payload.message;
 
-                const messagePayload = {
-                    type: "chatMessage",
-                    content: chatMessageContent,
-                    sender: "other"
-                };
-
-                // const message = messagePayload.content;
-
                 allSockets.forEach(user => {
+                    
                     if(user.room === senderRoom){
+
+                        const senderType = (user.socket === sender.socket)? "self" : "other";
+
+                        const messagePayload = {
+                            type: "chatMessage",
+                            content: chatMessageContent,
+                            sender: senderType
+                        };
+
+
                         user.socket.send(JSON.stringify(messagePayload));
                     }
                 })
